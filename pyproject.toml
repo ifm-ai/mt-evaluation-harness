@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mt_eval"
+# keep in sync with mt_eval/__init__.py __version__
+version = "0.1.0"
+description = "A generation harness for multi-turn, LLM-judged benchmarks"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+
+# No hard runtime dependencies on purpose. mt_eval imports transformers/vllm/torch/numpy
+# lazily, inside the functions that need them, and it is installed into venvs that already
+# carry a specific (sometimes patched) vLLM build — see helpers.get_ckpt_venv. Declaring
+# those here would let pip resolve and replace them. Install with `--no-deps`; use the
+# extras below only when building a fresh env from scratch.
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["mt_eval*"]
+
+[project.scripts]
+mt-eval = "mt_eval.__main__:main"
+mt_eval = "mt_eval.__main__:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-xdist"]
+hf = ["transformers>=4.1", "torch>=1.8"]
+vllm = ["vllm>=0.4.2"]
+# Multi-IF reuses lm-eval's canonical IFEval checkers, which need these. Mirrors lm-eval's
+# own `ifeval` extra; already present in the eval venvs, declared here for a fresh env.
+ifeval = ["langdetect", "immutabledict", "nltk>=3.9.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Unmarked tests are pure unit tests and run anywhere. The marked tiers need the cluster and
+# skip themselves when what they need is absent — see tests/conftest.py.
+markers = [
+    "needs_benchmarks: requires the benchmark data under LOCAL_BENCHMARK_PATH",
+    "needs_pipeline: requires the parent jais-3-evals repo on sys.path",
+    "needs_checkpoints: requires a real tokenizer from /jais3/checkpoints",
+]
